@@ -120,12 +120,12 @@ class RankManager {
     }
 
     void updateComm(MPI_Comm newComm) {
-        MPI_Group_free(&_currentGroup);
+        //MPI_Group_free(&_currentGroup);
         MPI_Comm_group(newComm, &_currentGroup);
     }
 
     void resetOriginalCommToCurrentComm() {
-        MPI_Group_free(&_originalGroup);
+        //MPI_Group_free(&_originalGroup);
         _originalGroup = _currentGroup;
     }
 
@@ -201,7 +201,7 @@ class RankManager {
         std::vector<int> originalRankIds(static_cast<size_t>(numRanksDied));
         MPI_Group_translate_ranks(
             difference, numRanksDied, groupRankIds.data(), _originalGroup, originalRankIds.data());
-        MPI_Group_free(&_lastDiedRanksRequestedGroup);
+        //MPI_Group_free(&_lastDiedRanksRequestedGroup);
         MPI_Group_union(_currentGroup, MPI_GROUP_EMPTY, &_lastDiedRanksRequestedGroup);
         return originalRankIds;
     }

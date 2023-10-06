@@ -137,9 +137,12 @@ class ReStore {
             _mpiContext.resetOriginalCommToCurrentComm();
 
             // Initialize the block distribution and block storage objects.
+            //Edited out to allow submiting twice 
++           /*
             if (_blockDistribution) {
                 throw std::runtime_error("You shall not call submitBlocks() twice!");
             }
+            */
             _blockDistribution.emplace(
                 _mpiContext.getOriginalSize(), globalNumberOfBlocks, _replicationLevel, _mpiContext);
             _serializedBlocks.emplace(*_blockDistribution, _offsetMode, _constOffset);
