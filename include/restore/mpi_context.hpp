@@ -25,6 +25,14 @@
     #define RESTORE_SPARSE_ALL_TO_ALL_TAG 42
 #endif
 
+#ifdef SIMULATE_SUBSTITUTION
+    #include <set>
+    //rank of pe that failed
+    extern int failed_pe_global;
+    //ranks of pes that failed
+    extern std::set<int> failed_pes_global;
+#endif
+
 namespace ReStoreMPI {
 
 typedef int current_rank_t;
@@ -334,6 +342,14 @@ class MPIContext {
     }
 
     bool isAlive(const original_rank_t rank) const {
+#ifdef SIMULATE_SUBSTITUTION
+        if (rank == failed_pe_global)
+            return false;
+        if (failed_pes_global.size()) {
+            if (failed_pes_global.find(rank) != failed_pes_global.end())
+                return false;
+        }
+#endif
         return getCurrentRank(rank).has_value();
     }
 

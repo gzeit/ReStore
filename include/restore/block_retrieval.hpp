@@ -63,9 +63,11 @@ inline ReStoreMPI::original_rank_t getServingRank(
     const typename BlockDistribution<MPIContext>::BlockRange& blockRange,
     const BlockDistribution<MPIContext>& _blockDistribution, ReStoreMPI::original_rank_t receivingRank) {
     // Special case treatment for blocks that we have locally
+#ifndef SIMULATE_SUBSTITUTION
     if (_blockDistribution.isStoredOn(blockRange, receivingRank)) {
         return receivingRank;
     }
+#endif
 
     // Select a random alive rank to serve this block range; use same PE for all requests of a PE for a given
     // BlockRange.

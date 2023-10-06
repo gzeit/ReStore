@@ -70,6 +70,7 @@ option(${PROJECT_NAME}_SIMULATE_FAILURES "Simulate node failues (for example whe
 option(${PROJECT_NAME}_USE_FTMPI "Use a fault-tolerant MPI implementation" ON)
 option(${PROJECT_NAME}_ID_RANDOMIZATION "Use randomization of block IDs." ON)
 option(${PROJECT_NAME}_WARNINGS_ARE_ERRORS "Treat warnings as errors." OFF)
+option(${PROJECT_NAME}_SIMULATE_SUBSTITUTING_RECOVERY "Simulate substituting recovery" OFF)
 
 # Output config
 if(NOT ${PROJECT_NAME}_SIMULATE_FAILURES AND NOT ${PROJECT_NAME}_USE_FTMPI)
@@ -207,6 +208,10 @@ endif()
 if (${PROJECT_NAME}_ID_RANDOMIZATION)
     target_compile_definitions(${PROJECT_NAME}_compile_requirements INTERFACE ID_RANDOMIZATION)
     target_compile_definitions(${PROJECT_NAME}_compile_requirements INTERFACE DENSE_ALL_TO_ALL_IN_SUBMIT_BLOCKS)
+endif()
+
+if (${PROJECT_NAME}_SIMULATE_SUBSTITUTING_RECOVERY)
+    target_compile_definitions(${PROJECT_NAME}_compile_requirements INTERFACE SIMULATE_SUBSTITUTION)
 endif()
 
 ### Libraries ###
