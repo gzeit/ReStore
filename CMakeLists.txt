@@ -279,7 +279,9 @@ set(${PROJECT_NAME}_XXHASH_DIR "${CMAKE_CURRENT_LIST_DIR}/extern/xxHash" CACHE P
 set(BUILD_SHARED_LIBS OFF)
 set(XXHASH_BUILD_ENABLE_INLINE_API ON)
 set(XXHASH_BUILD_XXHSUM OFF)
-add_subdirectory("${${PROJECT_NAME}_XXHASH_DIR}/cmake_unofficial" "${${PROJECT_NAME}_XXHASH_DIR/build}" EXCLUDE_FROM_ALL)
+if (NOT TARGET xxhash)
+	add_subdirectory("${${PROJECT_NAME}_XXHASH_DIR}/cmake_unofficial" "${${PROJECT_NAME}_XXHASH_DIR/build}" EXCLUDE_FROM_ALL)
+endif()
 
 # Link xxHash with ReStore
 target_link_libraries("${PROJECT_NAME}" INTERFACE xxhash)
