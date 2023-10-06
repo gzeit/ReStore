@@ -96,7 +96,71 @@ class ReStoreVector {
             numBlocksGlobal, async);
         return numBlocksLocal;
     }
-    
+
+    //pair containg a pointer to the array and the size of the array
+    size_t submitData(const std::pair<data_t*,long>& data, bool async = false) {
+        if (data.second == 0) {
+            throw std::invalid_argument("The data vector does not contain any elements.");
+        }
+        // TODO Maybe serialize multiple data points at once?
+        _isPadded = data.second % _nativeBlockSize != 0;
+        // Round up to the next multiple of _nativeBlockSize
+        auto numBlocksLocal = (data.second + _nativeBlockSize - 1) / _nativeBlockSize;
+        // Will throw on rank failure.
+        auto idOfMyFirstBlock = _mpiContext.exclusive_scan(numBlocksLocal, MPI_SUM);
+        auto numBlocksGlobal  = _mpiContext.allreduce(numBlocksLocal, MPI_SUM);
+
+        BlockProxy currentProxy   = nullptr;
+        block_id_t currentBlockId = idOfMyFirstBlock;
+        auto       blockInd       = 0;
+
+        assert(data.second * sizeof(data_t) == numBlocksLocal * _bytesPerBlock() || _isPadded);
+        // Will throw on Rank failure.
+        _reStore.submitBlocks(
+            [this, &data](const BlockProxy& blockProxy, SerializedBlockStoreStream& stream) {
+                assert(blockProxy != nullptr);
+                if (blockProxy + _nativeBlockSize > data.first + data.second) {
+                    // Only write as many bytes as there are left in data
+                    size_t bytesToWrite = asserting_cast<size_t>(
+                        reinterpret_cast<const std::byte*>(data.first + data.second)
+                        - reinterpret_cast<const std::byte*>(blockProxy));
+                    stream.writeBytes(reinterpret_cast<const std::byte*>(blockProxy), bytesToWrite);
+                    // Pad to the next multiple of _bytesPerBlock();
+                    // This could probably be done without allocating a new vector but it only happens once, so it
+                    // shouldn't really matter.
+                    const size_t numPaddingBytes  = asserting_cast<size_t>(_bytesPerBlock() - bytesToWrite);
+                    const size_t numPaddingValues = numPaddingBytes / sizeof(data_t);
+                    assert(numPaddingBytes % sizeof(data_t) == 0);
+                    std::vector<data_t> padding(numPaddingValues, _paddingValue);
+                    stream.writeBytes(reinterpret_cast<std::byte*>(padding.data()), numPaddingBytes);
+                } else {
+                    // Enough data left. Just write it.
+                    stream.writeBytes(reinterpret_cast<const std::byte*>(blockProxy), _bytesPerBlock());
+                }
+            },
+            [&blockInd, &data, & currentProxy, &currentBlockId, idOfMyFirstBlock, numBlocksLocal,
+             numBlocksGlobal,
+             this]() {
+                std::optional<NextBlock<BlockProxy>> nextBlock = std::nullopt;
+                if (blockInd != data.second) {
+                    assert(currentBlockId >= idOfMyFirstBlock);
+                    assert(currentBlockId < idOfMyFirstBlock + numBlocksLocal);
+                    assert(currentBlockId < numBlocksGlobal);
+                    UNUSED(idOfMyFirstBlock);
+                    UNUSED(numBlocksLocal);
+                    UNUSED(numBlocksGlobal);
+                    currentProxy = BlockProxy{data.first + blockInd};
+                    assert(currentProxy != nullptr);
+                    nextBlock.emplace(currentBlockId, currentProxy);
+                    blockInd += std::min(asserting_cast<long>(_nativeBlockSize), data.second - blockInd);
+                    currentBlockId++;
+                }
+                return nextBlock;
+            },
+            numBlocksGlobal, async);
+        return numBlocksLocal;
+    }
+
     void waitForSubmission() {
         _reStore.waitSubmitBlocksIsFinished();
     }
