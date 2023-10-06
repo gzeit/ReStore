@@ -82,7 +82,7 @@ inline ReStoreMPI::original_rank_t getServingRank(
 // block ranges change, too. If we are using the RangePermutation, we will still get some consecutive blocks
 // ids. E.g. the requested range [0,100) might get translated to [0,10), [80, 90), [20, 30), ...
 template <typename Permutation>
-std::vector<std::pair<std::pair<block_id_t, size_t>, ReStoreMPI::original_rank_t>>
+inline std::vector<std::pair<std::pair<block_id_t, size_t>, ReStoreMPI::original_rank_t>>
 projectBlockRequestsFromUserToPermutedIDs(
     std::vector<std::pair<std::pair<block_id_t, size_t>, ReStoreMPI::current_rank_t>> userBlockRanges,
     Permutation                                                                       permutation) {
@@ -119,7 +119,7 @@ projectBlockRequestsFromUserToPermutedIDs(
 }
 
 template <>
-std::vector<std::pair<std::pair<block_id_t, size_t>, ReStoreMPI::original_rank_t>>
+inline std::vector<std::pair<std::pair<block_id_t, size_t>, ReStoreMPI::original_rank_t>>
 projectBlockRequestsFromUserToPermutedIDs<IdentityPermutation>(
     std::vector<std::pair<std::pair<block_id_t, size_t>, ReStoreMPI::current_rank_t>> userBlockRanges,
     IdentityPermutation                                                               permutation) {

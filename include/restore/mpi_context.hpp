@@ -229,7 +229,7 @@ void successOrThrowMpiCall(const F& mpiCall) {
 #endif
 }
 
-void receiveNewMessage(std::vector<RecvMessage>& result, const MPI_Comm comm, const int tag) {
+inline void receiveNewMessage(std::vector<RecvMessage>& result, const MPI_Comm comm, const int tag) {
     int        newMessageReceived = false;
     MPI_Status receiveStatus;
     successOrThrowMpiCall([&]() { return MPI_Iprobe(MPI_ANY_SOURCE, tag, comm, &newMessageReceived, &receiveStatus); });
@@ -246,7 +246,7 @@ void receiveNewMessage(std::vector<RecvMessage>& result, const MPI_Comm comm, co
     }
 }
 
-std::vector<RecvMessage> SparseAllToAll(const std::vector<SendMessage>& messages, const MPI_Comm& comm, const int tag) {
+inline std::vector<RecvMessage> SparseAllToAll(const std::vector<SendMessage>& messages, const MPI_Comm& comm, const int tag) {
     // Send all messages
     std::vector<MPI_Request> requests(messages.size());
     for (size_t i = 0; i < messages.size(); ++i) {

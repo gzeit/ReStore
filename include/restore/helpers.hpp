@@ -249,7 +249,7 @@ inline uint8_t most_significant_bit_set(Data bytes) {
 }
 
 // Simple and fast string hash function taken from http://www.cse.yorku.ca/~oz/hash.html
-uint32_t hash_djb2(const unsigned char* str) {
+inline uint32_t hash_djb2(const unsigned char* str) {
     uint32_t hash = 5381;
     uint32_t c;
 
@@ -261,11 +261,11 @@ uint32_t hash_djb2(const unsigned char* str) {
     return hash;
 }
 
-uint32_t hash_djb2(const char* str) {
+inline uint32_t hash_djb2(const char* str) {
     return hash_djb2(reinterpret_cast<const unsigned char*>(str));
 }
 
-uint32_t hash_djb2(const std::string& str) {
+inline uint32_t hash_djb2(const std::string& str) {
     return hash_djb2(str.c_str());
 }
 
