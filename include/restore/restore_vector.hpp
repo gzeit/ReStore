@@ -35,7 +35,7 @@ class ReStoreVector {
     }
 
     // Submits the data to the ReStore. If a rank failure occurs, this will throw a ReStoreMPI::FaultException.
-    size_t submitData(const std::vector<data_t>& data) {
+    size_t submitData(const std::vector<data_t>& data, bool async = false) {
         if (data.empty()) {
             throw std::invalid_argument("The data vector does not contain any elements.");
         }
@@ -93,8 +93,12 @@ class ReStoreVector {
                 }
                 return nextBlock;
             },
-            numBlocksGlobal);
+            numBlocksGlobal, async);
         return numBlocksLocal;
+    }
+    
+    void waitForSubmission() {
+        _reStore.waitSubmitBlocksIsFinished();
     }
 
     // Update the communicator.
@@ -152,25 +156,28 @@ class ReStoreVector {
         // Reserve the appropriate amount of space for the current plus the new elements in the data vector.
         auto sizeBeforeExpansion = data.size();
         data.resize(data.size() + numBlocksForMe * _nativeBlockSize);
-
+        block_id_t current_block;
+        auto       localId = [&newBlocks, &current_block](block_id_t& blockId) {
+            current_block = blockId;
+            for (auto range: newBlocks) {
+                if (blockId >= range.first) {
+                    if (blockId < range.first + range.second)
+                        return current_block - range.first;
+                }
+                current_block += range.second;
+            }
+            return current_block;
+        };
         // Append the new blocks to the data vector
-        auto nextBlockPtr = reinterpret_cast<std::byte*>(data.data() + sizeBeforeExpansion);
+        auto firstBlockPtr = reinterpret_cast<std::byte*>(data.data() + sizeBeforeExpansion);
         _reStore.pullBlocks(
-            newBlocks, [this, &nextBlockPtr](const std::byte* dataPtr, size_t dataSize, block_id_t blockId) {
+            newBlocks, [this, &nextBlockPtr, &localId, &firstBlockPtr, &current_block](const std::byte* dataPtr, size_t dataSize, block_id_t blockId) {
                 UNUSED(blockId);
                 assert(_bytesPerBlock() == dataSize);
                 UNUSED(this);
-                std::copy(dataPtr, dataPtr + dataSize, nextBlockPtr);
-                nextBlockPtr += dataSize;
-                if (_isPadded) {
-                    // Remove all padded values
-                    while (*reinterpret_cast<data_t*>(nextBlockPtr - sizeof(data_t)) == _paddingValue) {
-                        nextBlockPtr -= sizeof(data_t);
-                    }
-                }
+                std::copy(dataPtr, dataPtr + dataSize, firstBlockPtr + dataSize * localId(blockId));
             });
-        // After removing padded values, we have to adjust the size
-        data.resize(asserting_cast<size_t>(reinterpret_cast<data_t*>(nextBlockPtr) - data.data()));
+        //Values are still padded
     }
 
 
